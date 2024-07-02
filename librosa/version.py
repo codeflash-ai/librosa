@@ -10,18 +10,14 @@ version = "0.10.2.post1"
 
 
 def __get_mod_version(modname):
-    try:
-        if modname in sys.modules:
-            mod = sys.modules[modname]
-        else:
-            mod = importlib.import_module(modname)
+    mod = sys.modules.get(modname)
+    if mod is None:
         try:
-            return mod.__version__
-        except AttributeError:
-            return "installed, no version number available"
+            mod = importlib.import_module(modname)
+        except ImportError:
+            return None
 
-    except ImportError:
-        return None
+    return getattr(mod, "__version__", "installed, no version number available")
 
 
 def show_versions() -> None:
