@@ -18,6 +18,7 @@ from ..util.exceptions import ParameterError
 from numpy.typing import DTypeLike
 from typing import Optional, Union, Collection, List
 from .._typing import _WindowSpec, _PadMode, _FloatLike_co, _ensure_not_reachable
+from math import ceil, log2
 
 __all__ = ["cqt", "hybrid_cqt", "pseudo_cqt", "icqt", "griffinlim_cqt", "vqt"]
 
@@ -1148,7 +1149,7 @@ def __cqt_response(
 
 def __early_downsample_count(nyquist, filter_cutoff, hop_length, n_octaves):
     """Compute the number of early downsampling operations"""
-    downsample_count1 = max(0, int(np.ceil(np.log2(nyquist / filter_cutoff)) - 1) - 1)
+    downsample_count1 = max(0, ceil(log2(nyquist / filter_cutoff)) - 2)
 
     num_twos = __num_two_factors(hop_length)
     downsample_count2 = max(0, num_twos - n_octaves + 1)
@@ -1498,3 +1499,19 @@ def __et_relative_bw(bins_per_octave: int) -> np.ndarray:
     """
     r = 2 ** (1 / bins_per_octave)
     return np.atleast_1d((r**2 - 1) / (r**2 + 1))
+
+
+@jit(nopython=True, cache=True)
+def __num_two_factors(x):
+    """Return how many times integer x can be evenly divided by 2.
+
+    Returns 0 for non-positive integers.
+    """
+    if x <= 0:
+        return 0
+    num_twos = 0
+    while x % 2 == 0:
+        num_twos += 1
+        x //= 2
+
+    return num_twos
